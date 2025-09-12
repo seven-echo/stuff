@@ -1,0 +1,169 @@
+# .gitignore - Git忽略文件配置
+
+# 字节码文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 分发/打包
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# 单元测试 / 覆盖率报告
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# 环境变量
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# Streamlit
+.streamlit/
+
+# 日志文件
+*.log
+logs/
+
+# 数据文件
+data/
+*.csv
+*.xlsx
+*.json
+*.pkl
+
+# 配置文件
+config.ini
+settings.json
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+*.temp
+
+# 密钥和证书
+*.key
+*.pem
+*.crt
+ssl/
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# 缓存
+.cache/
+cache/
+
+# 备份文件
+*.bak
+*.backup
+
+# 测试文件
+test_data/
+test_results/
+
+# 部署相关
+.env.production
+.env.staging
+deployment/
+
+# 文档生成
+docs/_build/
+docs/build/
+
+# 本地配置
+local_settings.py
+local_config.py
