@@ -467,53 +467,87 @@ class ComprehensiveStockAnalyzer:
             }
     
     def get_event_analysis(self, symbol, market="A股"):
-        """突发事件分析"""
+        """突发事件分析 - 集成全面事件分析系统"""
         try:
-            event_score = 70  # 默认无重大事件
-            risk_events = []
-            positive_events = []
+            # 导入事件分析器
+            import asyncio
+            from event_analyzer import ComprehensiveEventAnalyzer
             
-            # 这里可以集成多种事件监控API:
-            # 1. 公司公告监控
-            # 2. 行业政策监控  
-            # 3. 宏观经济事件
-            # 4. 国际市场事件
+            analyzer = ComprehensiveEventAnalyzer()
             
-            # 简化版事件风险评估
-            current_date = datetime.now()
-            
-            # 检查是否临近财报季
-            if current_date.month in [1, 4, 7, 10]:
-                risk_events.append("临近财报发布期")
-                event_score -= 5
-            
-            # 检查是否为月末/季末
-            if current_date.day > 25:
-                risk_events.append("月末资金面紧张")
-                event_score -= 3
-            
-            # 风险等级评估
-            if event_score >= 80:
-                risk_level = "低风险"
-            elif event_score >= 60:
-                risk_level = "中风险"
-            else:
-                risk_level = "高风险"
-            
-            return {
-                'score': event_score,
-                'risk_level': risk_level,
-                'risk_events': risk_events,
-                'positive_events': positive_events,
-                'analysis': f"事件风险等级: {risk_level}"
-            }
-            
+            # 运行异步事件分析
+            try:
+                result = asyncio.run(
+                    analyzer.comprehensive_event_analysis(
+                        symbol=symbol,
+                        company_name="",
+                        industry="",
+                        days=7
+                    )
+                )
+                
+                return {
+                    'score': result['score'],
+                    'risk_level': result['risk_level'],
+                    'risk_events': [e.title for e in result['events'][:3] if e.impact.value in ['利空', '重大利空']],
+                    'positive_events': [e.title for e in result['events'][:3] if e.impact.value in ['利好', '重大利好']],
+                    'analysis': result['summary'],
+                    'total_events': result['total_events'],
+                    'opportunity_level': result['opportunity_level'],
+                    'detailed_events': result['events'][:5]  # 前5个重要事件
+                }
+                
+            except Exception as async_error:
+                # 异步调用失败时的备选方案
+                return self._fallback_event_analysis(symbol)
+                
+        except ImportError:
+            # 模块导入失败时的备选方案
+            return self._fallback_event_analysis(symbol)
         except Exception as e:
-            return {
-                'score': 70,
-                'risk_level': "未知",
-                'analysis': "事件分析功能待完善"
-            }
+            return self._fallback_event_analysis(symbol)
+    
+    def _fallback_event_analysis(self, symbol):
+        """备选事件分析方案"""
+        event_score = 70  # 默认无重大事件
+        risk_events = []
+        positive_events = []
+        
+        # 简化版事件风险评估
+        current_date = datetime.now()
+        
+        # 检查是否临近财报季
+        if current_date.month in [1, 4, 7, 10]:
+            risk_events.append("临近财报发布期")
+            event_score -= 5
+        
+        # 检查是否为月末/季末
+        if current_date.day > 25:
+            risk_events.append("月末资金面紧张")
+            event_score -= 3
+        
+        # 检查重要时间节点
+        if current_date.month == 12:
+            positive_events.append("年底行情预期")
+            event_score += 5
+        
+        # 风险等级评估
+        if event_score >= 80:
+            risk_level = "低风险"
+        elif event_score >= 60:
+            risk_level = "中风险"
+        else:
+            risk_level = "高风险"
+        
+        return {
+            'score': event_score,
+            'risk_level': risk_level,
+            'risk_events': risk_events,
+            'positive_events': positive_events,
+            'analysis': f"事件风险等级: {risk_level} (基础版分析)",
+            'total_events': len(risk_events) + len(positive_events),
+            'opportunity_level': "机会适中"
+        }
     
     def comprehensive_analysis(self, symbol, company_name, market="A股", mode="全维度分析"):
         """综合分析"""
@@ -854,27 +888,63 @@ if analyze_button and stock_input:
                 if result['event']:
                     event = result['event']
                     
-                    st.subheader("事件风险评估")
+                    st.subheader("⚡ 事件风险评估")
                     st.write(event.get('analysis', '事件分析不可用'))
                     
-                    risk_color = {
-                        '低风险': 'success',
-                        '中风险': 'warning',
-                        '高风险': 'error'
-                    }
+                    # 事件统计概览
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("事件总数", event.get('total_events', 0))
+                    with col2:
+                        st.metric("风险等级", event.get('risk_level', '未知'))
+                    with col3:
+                        st.metric("机会等级", event.get('opportunity_level', '未知'))
                     
-                    if 'risk_level' in event:
-                        st.metric("风险等级", event['risk_level'])
-                    
+                    # 风险事件
                     if 'risk_events' in event and event['risk_events']:
-                        st.subheader("风险事件")
-                        for event_item in event['risk_events']:
-                            st.warning(f"⚠️ {event_item}")
+                        st.subheader("🚨 风险事件")
+                        for i, event_item in enumerate(event['risk_events'][:5], 1):
+                            st.warning(f"{i}. ⚠️ {event_item}")
                     
+                    # 利好事件
                     if 'positive_events' in event and event['positive_events']:
-                        st.subheader("利好事件") 
-                        for event_item in event['positive_events']:
-                            st.success(f"✅ {event_item}")
+                        st.subheader("🎉 利好事件") 
+                        for i, event_item in enumerate(event['positive_events'][:5], 1):
+                            st.success(f"{i}. ✅ {event_item}")
+                    
+                    # 详细事件信息 (如果有)
+                    if 'detailed_events' in event and event['detailed_events']:
+                        st.subheader("📋 重要事件详情")
+                        
+                        for i, detailed_event in enumerate(event['detailed_events'][:3], 1):
+                            with st.expander(f"事件 {i}: {detailed_event.title[:50]}..."):
+                                col1, col2 = st.columns([2, 1])
+                                
+                                with col1:
+                                    st.markdown(f"**内容:** {detailed_event.content[:200]}...")
+                                    if hasattr(detailed_event, 'keywords') and detailed_event.keywords:
+                                        st.markdown(f"**关键词:** {', '.join(detailed_event.keywords[:5])}")
+                                
+                                with col2:
+                                    st.markdown(f"**类型:** {detailed_event.event_type.value}")
+                                    st.markdown(f"**影响:** {detailed_event.impact.value}")
+                                    st.markdown(f"**时间:** {detailed_event.timestamp.strftime('%Y-%m-%d')}")
+                                    st.markdown(f"**来源:** {detailed_event.source}")
+                    
+                    # 高级事件分析按钮
+                    if st.button("🔍 查看完整事件分析", key="advanced_event_analysis"):
+                        st.info("💡 提示: 完整的事件分析功能包括事件时间线、统计图表、监控预警等高级功能。")
+                        st.markdown("""
+                        **完整事件分析功能包括:**
+                        - 📅 事件时间线可视化
+                        - 📊 事件类型和影响分布统计
+                        - 📈 事件情感趋势分析
+                        - 🚨 实时事件监控预警
+                        - 📋 详细的事件分析报告
+                        - 🔔 多渠道事件通知
+                        """)
+                else:
+                    st.info("事件分析数据不可用")
 
 # 侧边栏功能
 st.sidebar.markdown("---")
