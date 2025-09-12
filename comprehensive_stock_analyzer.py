@@ -657,14 +657,29 @@ if analyze_button and stock_input:
             # 显示综合评分和建议
             rec = result['recommendation']
             
-            # 大标题显示结果
-            st.markdown(f"""
-            <div class="recommendation-{'high' if result['final_score'] >= 70 else 'medium' if result['final_score'] >= 50 else 'low'}">
-                <h2>{rec['emoji']} {rec['level']}</h2>
-                <h3>综合评分: {result['final_score']:.1f}/100</h3>
-                <p>投资建议: {rec['action']}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            # 导入增强可视化模块
+            try:
+                from enhanced_visualization import create_beautiful_summary_cards, EnhancedVisualization
+                
+                # 显示美观的总结卡片
+                create_beautiful_summary_cards(result)
+                
+                # 创建综合仪表板
+                viz = EnhancedVisualization()
+                dashboard_chart = viz.create_comprehensive_dashboard(result)
+                
+                st.markdown("### 📊 综合分析仪表板")
+                st.plotly_chart(dashboard_chart, use_container_width=True)
+                
+            except ImportError:
+                # 备选显示方案
+                st.markdown(f"""
+                <div class="recommendation-{'high' if result['final_score'] >= 70 else 'medium' if result['final_score'] >= 50 else 'low'}">
+                    <h2>{rec['emoji']} {rec['level']}</h2>
+                    <h3>综合评分: {result['final_score']:.1f}/100</h3>
+                    <p>投资建议: {rec['action']}</p>
+                </div>
+                """, unsafe_allow_html=True)
             
             st.markdown("---")
             
@@ -717,80 +732,110 @@ if analyze_button and stock_input:
                     col1, col2 = st.columns([2, 1])
                     
                     with col1:
-                        # K线图
+                        # K线图 - 使用增强可视化
                         if 'data' in tech and len(tech['data']) > 0:
-                            fig = make_subplots(
-                                rows=2, cols=1,
-                                shared_xaxis=True,
-                                vertical_spacing=0.1,
-                                subplot_titles=('K线图', 'RSI'),
-                                row_heights=[0.7, 0.3]
-                            )
-                            
-                            data = tech['data'].tail(60)  # 最近60天
-                            
-                            # K线图
-                            fig.add_trace(
-                                go.Candlestick(
-                                    x=data['日期'] if '日期' in data.columns else data.index,
-                                    open=data['开盘'] if '开盘' in data.columns else data['open'],
-                                    high=data['最高'] if '最高' in data.columns else data['high'],
-                                    low=data['最低'] if '最低' in data.columns else data['low'],
-                                    close=data['收盘'] if '收盘' in data.columns else data['close'],
-                                    name="K线"
-                                ),
-                                row=1, col=1
-                            )
-                            
-                            # 均线
-                            close_col = '收盘' if '收盘' in data.columns else 'close'
-                            date_col = '日期' if '日期' in data.columns else data.index
-                            
-                            if 'MA5' in data.columns:
-                                fig.add_trace(
-                                    go.Scatter(
-                                        x=date_col,
-                                        y=data['MA5'],
-                                        name="MA5",
-                                        line=dict(color='orange', width=1)
-                                    ),
-                                    row=1, col=1
-                                )
-                            
-                            if 'MA20' in data.columns:
-                                fig.add_trace(
-                                    go.Scatter(
-                                        x=date_col,
-                                        y=data['MA20'],
-                                        name="MA20",
-                                        line=dict(color='blue', width=1)
-                                    ),
-                                    row=1, col=1
-                                )
-                            
-                            # RSI
-                            if 'RSI' in data.columns:
-                                fig.add_trace(
-                                    go.Scatter(
-                                        x=date_col,
-                                        y=data['RSI'],
-                                        name="RSI",
-                                        line=dict(color='purple')
-                                    ),
-                                    row=2, col=1
+                            try:
+                                from enhanced_visualization import EnhancedVisualization
+                                
+                                viz = EnhancedVisualization()
+                                
+                                # 准备技术指标数据
+                                technical_indicators = {}
+                                if 'MA5' in tech['data'].columns:
+                                    technical_indicators['moving_averages'] = {
+                                        '5': tech['data']['MA5'],
+                                        '20': tech['data']['MA20'] if 'MA20' in tech['data'].columns else None,
+                                        '60': tech['data']['MA60'] if 'MA60' in tech['data'].columns else None
+                                    }
+                                
+                                # 准备事件数据
+                                events = []
+                                if result.get('event') and 'detailed_events' in result['event']:
+                                    events = result['event']['detailed_events']
+                                
+                                # 创建增强K线图
+                                enhanced_chart = viz.create_interactive_candlestick_chart(
+                                    tech['data'].tail(60),
+                                    events=events,
+                                    technical_indicators=technical_indicators
                                 )
                                 
-                                # RSI超买超卖线
-                                fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
-                                fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
-                            
-                            fig.update_layout(
-                                title=f"{company_name}({stock_input}) 技术分析图",
-                                height=600,
-                                xaxis_rangeslider_visible=False
-                            )
-                            
-                            st.plotly_chart(fig, use_container_width=True)
+                                st.plotly_chart(enhanced_chart, use_container_width=True)
+                                
+                            except ImportError:
+                                # 备选方案：原始K线图
+                                fig = make_subplots(
+                                    rows=2, cols=1,
+                                    shared_xaxis=True,
+                                    vertical_spacing=0.1,
+                                    subplot_titles=('K线图', 'RSI'),
+                                    row_heights=[0.7, 0.3]
+                                )
+                                
+                                data = tech['data'].tail(60)  # 最近60天
+                                
+                                # K线图
+                                fig.add_trace(
+                                    go.Candlestick(
+                                        x=data['日期'] if '日期' in data.columns else data.index,
+                                        open=data['开盘'] if '开盘' in data.columns else data['open'],
+                                        high=data['最高'] if '最高' in data.columns else data['high'],
+                                        low=data['最低'] if '最低' in data.columns else data['low'],
+                                        close=data['收盘'] if '收盘' in data.columns else data['close'],
+                                        name="K线"
+                                    ),
+                                    row=1, col=1
+                                )
+                                
+                                # 均线
+                                close_col = '收盘' if '收盘' in data.columns else 'close'
+                                date_col = '日期' if '日期' in data.columns else data.index
+                                
+                                if 'MA5' in data.columns:
+                                    fig.add_trace(
+                                        go.Scatter(
+                                            x=date_col,
+                                            y=data['MA5'],
+                                            name="MA5",
+                                            line=dict(color='orange', width=1)
+                                        ),
+                                        row=1, col=1
+                                    )
+                                
+                                if 'MA20' in data.columns:
+                                    fig.add_trace(
+                                        go.Scatter(
+                                            x=date_col,
+                                            y=data['MA20'],
+                                            name="MA20",
+                                            line=dict(color='blue', width=1)
+                                        ),
+                                        row=1, col=1
+                                    )
+                                
+                                # RSI
+                                if 'RSI' in data.columns:
+                                    fig.add_trace(
+                                        go.Scatter(
+                                            x=date_col,
+                                            y=data['RSI'],
+                                            name="RSI",
+                                            line=dict(color='purple')
+                                        ),
+                                        row=2, col=1
+                                    )
+                                    
+                                    # RSI超买超卖线
+                                    fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
+                                    fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
+                                
+                                fig.update_layout(
+                                    title=f"{company_name}({stock_input}) 技术分析图",
+                                    height=600,
+                                    xaxis_rangeslider_visible=False
+                                )
+                                
+                                st.plotly_chart(fig, use_container_width=True)
                     
                     with col2:
                         st.subheader("技术指标")
@@ -930,6 +975,40 @@ if analyze_button and stock_input:
                                     st.markdown(f"**影响:** {detailed_event.impact.value}")
                                     st.markdown(f"**时间:** {detailed_event.timestamp.strftime('%Y-%m-%d')}")
                                     st.markdown(f"**来源:** {detailed_event.source}")
+                    
+                    # 事件回测分析按钮
+                    if st.button("📊 事件影响回测分析", key="event_backtest_analysis"):
+                        st.info("🚀 启动事件影响回测分析...")
+                        
+                        # 这里集成事件回测功能
+                        try:
+                            from event_backtest import EventVisualizationUI
+                            
+                            # 创建回测分析界面
+                            backtest_ui = EventVisualizationUI()
+                            
+                            # 在当前页面显示回测分析
+                            with st.container():
+                                st.markdown("---")
+                                backtest_ui.display_event_backtest_analysis(stock_input, company_name)
+                                
+                        except ImportError:
+                            st.warning("事件回测模块未安装，显示功能预览")
+                            st.markdown("""
+                            **🎯 事件影响回测分析功能包括:**
+                            - 📈 股价走势与事件标记的综合图表
+                            - 📊 不同类型事件的平均影响分析
+                            - 🎯 AI预测准确性验证
+                            - ⏰ 事件影响持续时间分析
+                            - 📋 详细的回测数据表格
+                            - 💡 基于历史数据的投资策略建议
+                            
+                            **示例分析结果:**
+                            - 财报超预期事件：平均5日收益 +3.2%
+                            - 重大重组事件：平均10日收益 +8.5%
+                            - 监管调查事件：平均5日收益 -5.8%
+                            - AI预测准确率：72.3%
+                            """)
                     
                     # 高级事件分析按钮
                     if st.button("🔍 查看完整事件分析", key="advanced_event_analysis"):
