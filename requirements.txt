@@ -1,0 +1,39 @@
+# 全维度AI选股系统依赖包
+
+# 核心框架
+streamlit>=1.28.0
+
+# 金融数据源
+openbb>=4.0.0
+akshare>=1.12.0
+yfinance>=0.2.18
+
+# 数据处理
+pandas>=2.0.0
+numpy>=1.24.0
+
+# 可视化
+plotly>=5.15.0
+
+# 情感分析
+textblob>=0.17.1
+
+# 网络请求
+requests>=2.31.0
+aiohttp>=3.8.0
+
+# 中文处理
+jieba>=0.42.1
+
+# RSS解析
+feedparser>=6.0.10
+
+# 异步支持
+asyncio>=3.4.3
+
+# 数据科学
+scipy>=1.10.0
+
+# 其他工具
+python-dateutil>=2.8.2
+pytz>=2023.3
